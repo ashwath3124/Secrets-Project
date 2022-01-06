@@ -5,8 +5,9 @@ const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
 // const encrypt = require("mongoose-encryption");
-const md5 = require("md5");
-// const { StringDecoder } = require("string_decoder");
+// const md5 = require("md5");
+const bcrypt = require("bcrypt");
+const saltRound = 10;
 
 const app = express();
 
@@ -54,11 +55,23 @@ app.route("/login")
                 console.log(err);
             } else {
                 if (foundUser) {
-                    if (foundUser.password === md5(password)) {
-                        res.render("secrets");
-                    } else {
-                        console.log("Password incorrect");
-                    }
+                    // if (foundUser.password === password) {
+                    //     res.render("secrets");
+                    // } else {
+                    //     console.log("Password incorrect");
+                    // }
+
+                    bcrypt.compare(
+                        password,
+                        foundUser.password,
+                        function (err, result) {
+                            if (result === true) {
+                                res.render("secrets");
+                            } else {
+                                console.log("Password incorrect");
+                            }
+                        }
+                    );
                 } else {
                     console.log("Not found");
                 }
@@ -71,22 +84,24 @@ app.route("/register")
         res.render("register");
     })
     .post(function (req, res) {
-        const newUser = new User({
-            email: req.body.username,
-            password: md5(req.body.password),
-        });
+        bcrypt.hash(req.body.password, saltRound, function (err, hash) {
+            const newUser = new User({
+                email: req.body.username,
+                password: hash,
+            });
 
-        // console.log(req.body.username);
-        // console.log(req.body.password);
-        // console.log(newUser);
+            // console.log(req.body.username);
+            // console.log(req.body.password);
+            // console.log(newUser);
 
-        newUser.save(function (err) {
-            if (!err) {
-                // console.log(newUser);
-                res.render("secrets");
-            } else {
-                console.log(err);
-            }
+            newUser.save(function (err) {
+                if (!err) {
+                    // console.log(newUser);
+                    res.render("secrets");
+                } else {
+                    console.log(err);
+                }
+            });
         });
     });
 
